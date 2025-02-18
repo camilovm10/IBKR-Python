@@ -128,7 +128,7 @@ def get_bar_data(client, symbol, timeframe, end_datetime, duration_str):
     what_to_show = 'TRADES'
     
 
-    client.reqHistoricalData(1, contract, end_datetime, duration_str, '1 hour', 'BID', 0, 1, False, [])
+    client.reqHistoricalData(1, contract, end_datetime, duration_str, timeframe, 'BID', 0, 1, False, [])
 
     time.sleep(25)
     
