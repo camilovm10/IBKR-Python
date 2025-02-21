@@ -39,14 +39,13 @@ class PTLClient(EWrapper, EClient):
         EClient.__init__(self, self) 
         
         self.connect(host, port, client_id)
+        self.data_is_loaded = False
 
         # create a new Thread
         thread = Thread(target=self.run)
         thread.start()
 
         time.sleep(3)
-
-
     
 
     def nextValidId(self, orderId: int):
@@ -77,6 +76,13 @@ class PTLClient(EWrapper, EClient):
         # Put the data into the queue
         data_queue.put(data)
 
+    # callback when all historical data has been received
+    def historicalDataEnd(self, reqId, start, end):
+        print(f"end of data {start} {end}")
+        self.data_is_loaded = True 
+        self.disconnect()
+        
+
     def parse_datetime(dt_str):
         # Split the string into the datetime and timezone parts
         date_part, time_part, tz_str = dt_str.split()
@@ -85,11 +91,6 @@ class PTLClient(EWrapper, EClient):
         # Localize the naive datetime using the specified timezone
         timezone = pytz.timezone(tz_str)
         return timezone.localize(naive_dt)
-
-    # callback when all historical data has been received
-    def historicalDataEnd(self, reqId, start, end):
-        print(f"end of data {start} {end}")
-        
 
 
     # callback to log order status, we can put more behavior here if needed
@@ -127,12 +128,7 @@ def get_bar_data(client, symbol, timeframe, end_datetime, duration_str):
     contract.currency = 'USD'
     what_to_show = 'TRADES'
     
-
     client.reqHistoricalData(1, contract, end_datetime, duration_str, timeframe, 'BID', 0, 1, False, [])
-
-    time.sleep(25)
-    
-
 
 
 def get_historical_dataframe(client, symbol, timeframe, end_datetime, duration_str):
@@ -146,8 +142,8 @@ def get_historical_dataframe(client, symbol, timeframe, end_datetime, duration_s
 
     get_bar_data(client, symbol, timeframe, end_datetime, duration_str)  # this calls client.reqHistoricalData internally
 
-    # Wait for data to arrive; adjust sleep time or add a timeout as needed.
-    time.sleep(5)
+    while not client.data_is_loaded:
+        time.sleep(1)
 
     bars = []
     try:
@@ -162,6 +158,7 @@ def get_historical_dataframe(client, symbol, timeframe, end_datetime, duration_s
         # Optionally set 'Datetime' column as datetime and index it.
         df['Datetime'] = pd.to_datetime(df['Datetime'])
         df.set_index('Datetime', inplace=True)
+
         return df
     else:
         return pd.DataFrame()  # return empty DataFrame if no data
