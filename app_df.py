@@ -156,7 +156,7 @@ def get_historical_dataframe(client, symbol, timeframe, end_datetime, duration_s
     if bars:
         df = pd.DataFrame(bars)
         # Optionally set 'Datetime' column as datetime and index it.
-        df['Datetime'] = pd.to_datetime(df['Datetime'])
+        df['Datetime'] = pd.to_datetime(df['Datetime'], utc=True)
         df.set_index('Datetime', inplace=True)
 
         return df
